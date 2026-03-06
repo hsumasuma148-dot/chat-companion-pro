@@ -46,7 +46,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
         className="mt-1 shrink-0 rounded-lg p-1.5 text-muted-foreground opacity-0 transition-all hover:bg-accent hover:text-foreground group-hover:opacity-100"
         title="Copy message"
       >
-        {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+        {copied ? <Check className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}
       </button>
     </motion.div>
   );
