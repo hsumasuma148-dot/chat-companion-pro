@@ -49,7 +49,7 @@ const Chat = () => {
 
       <div className="flex flex-1 flex-col">
         {/* Header */}
-        <header className="flex items-center justify-between border-b border-border bg-background px-4 py-3">
+        <header className="flex items-center justify-between border-b border-border bg-card px-4 py-3">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setSidebarOpen(true)}
@@ -101,13 +101,13 @@ const Chat = () => {
               <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-primary/10">
                 <Bot className="h-10 w-10 text-primary" />
               </div>
-              <h2 className="mb-2 text-2xl font-bold text-foreground">How can I help you today?</h2>
+              <h2 className="mb-2 text-2xl font-bold text-foreground">Hello! How can I help you today?</h2>
               <p className="max-w-md text-center text-muted-foreground">
-                Ask me anything — I'm powered by Mistral 7B and ready to assist with writing, analysis, coding, and more.
+                Ask me anything — I'm powered by AI and ready to assist with writing, analysis, coding, and more.
               </p>
             </motion.div>
           ) : (
-            <div className="mx-auto max-w-3xl">
+            <div className="mx-auto max-w-3xl py-4">
               {messages.map(msg => (
                 <ChatMessage key={msg.id} message={msg} />
               ))}

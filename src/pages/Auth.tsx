@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bot, Mail, Lock, ArrowRight, Loader2 } from "lucide-react";
+import { Bot, Mail, Lock, ArrowRight, Loader2, Zap } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
@@ -9,6 +9,7 @@ const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [demoLoading, setDemoLoading] = useState(false);
   const { signIn, signUp } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -22,10 +23,28 @@ const Auth = () => {
     if (error) {
       toast.error(error.message);
     } else if (!isLogin) {
-      toast.success("Check your email to confirm your account!");
+      toast.success("Account created! You're now signed in.");
     }
 
     setLoading(false);
+  };
+
+  const handleDemoLogin = async () => {
+    setDemoLoading(true);
+    const demoEmail = `demo-${Date.now()}@demo.local`;
+    const demoPassword = "demo-password-123";
+
+    const { error: signUpError } = await signUp(demoEmail, demoPassword);
+    if (signUpError) {
+      // If signup fails, try signing in (account may already exist)
+      const { error: signInError } = await signIn(demoEmail, demoPassword);
+      if (signInError) {
+        toast.error("Demo login failed. Please try again.");
+        setDemoLoading(false);
+        return;
+      }
+    }
+    setDemoLoading(false);
   };
 
   return (
@@ -50,6 +69,31 @@ const Auth = () => {
         </div>
 
         <div className="rounded-2xl border border-border bg-card p-8 shadow-lg">
+          {/* Demo Login Button */}
+          <button
+            onClick={handleDemoLogin}
+            disabled={demoLoading}
+            className="mb-6 flex w-full items-center justify-center gap-2 rounded-xl bg-secondary py-3 font-medium text-foreground transition-all hover:bg-accent disabled:opacity-50"
+          >
+            {demoLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <>
+                <Zap className="h-4 w-4 text-primary" />
+                Try Demo — No Sign Up Required
+              </>
+            )}
+          </button>
+
+          <div className="relative mb-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-border" />
+            </div>
+            <div className="relative flex justify-center text-xs">
+              <span className="bg-card px-2 text-muted-foreground">or continue with email</span>
+            </div>
+          </div>
+
           <div className="mb-6 flex rounded-xl bg-secondary p-1">
             {["Sign In", "Sign Up"].map((label, i) => (
               <button
