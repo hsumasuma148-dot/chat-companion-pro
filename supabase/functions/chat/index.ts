@@ -10,8 +10,8 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const HF_API_KEY = Deno.env.get("HF_API_KEY");
-    if (!HF_API_KEY) throw new Error("HF_API_KEY is not configured");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
@@ -36,52 +36,33 @@ serve(async (req) => {
 
     const { messages, conversationId } = await req.json();
 
-    // Format messages for the HF model
-    const prompt = messages.map((m: { role: string; content: string }) => {
-      if (m.role === "user") return `[INST] ${m.content} [/INST]`;
-      return m.content;
-    }).join("\n");
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-3-flash-preview",
+        messages: [
+          { role: "system", content: "You are a helpful AI assistant. Be concise and informative." },
+          ...messages.map((m: { role: string; content: string }) => ({ role: m.role, content: m.content })),
+        ],
+        max_tokens: 1024,
+        temperature: 0.7,
+      }),
+    });
 
-    // Call HF Inference API for Mistral
-    const hfResponse = await fetch(
-      "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${HF_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          inputs: prompt,
-          parameters: {
-            max_new_tokens: 1024,
-            temperature: 0.7,
-            top_p: 0.95,
-            return_full_text: false,
-          },
-        }),
-      }
-    );
-
-    if (!hfResponse.ok) {
-      const errText = await hfResponse.text();
-      console.error("HF API error:", hfResponse.status, errText);
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error("AI Gateway error:", response.status, errText);
       return new Response(JSON.stringify({ error: "AI service error", details: errText }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const hfData = await hfResponse.json();
-    let assistantContent = "";
-
-    if (Array.isArray(hfData) && hfData.length > 0) {
-      assistantContent = hfData[0].generated_text || "I couldn't generate a response.";
-    } else {
-      assistantContent = "I couldn't generate a response.";
-    }
-
-    // Clean up the response
-    assistantContent = assistantContent.trim();
+    const data = await response.json();
+    const assistantContent = data.choices?.[0]?.message?.content || "I couldn't generate a response.";
 
     return new Response(JSON.stringify({ content: assistantContent, conversationId }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
