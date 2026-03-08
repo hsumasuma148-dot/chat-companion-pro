@@ -8,6 +8,11 @@ interface ChatMessageProps {
   message: Message;
 }
 
+function formatTime(dateStr: string) {
+  const d = new Date(dateStr);
+  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
 export function ChatMessage({ message }: ChatMessageProps) {
   const [copied, setCopied] = useState(false);
   const isUser = message.role === "user";
@@ -23,31 +28,48 @@ export function ChatMessage({ message }: ChatMessageProps) {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className={`group flex gap-4 px-4 py-6 md:px-8 ${
-        isUser ? "bg-chat-user" : "bg-chat-assistant"
-      }`}
+      className={`flex gap-3 px-4 py-4 md:px-6 ${isUser ? "justify-end" : "justify-start"}`}
     >
-      <div
-        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
-          isUser ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground"
-        }`}
-      >
-        {isUser ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
-      </div>
+      {/* AI avatar */}
+      {!isUser && (
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <Bot className="h-4 w-4" />
+        </div>
+      )}
 
-      <div className="min-w-0 flex-1">
-        <div className="prose prose-sm max-w-none dark:prose-invert">
-          <ReactMarkdown>{message.content}</ReactMarkdown>
+      <div className={`max-w-[80%] md:max-w-[70%] ${isUser ? "order-1" : ""}`}>
+        <div
+          className={`rounded-2xl px-4 py-3 ${
+            isUser
+              ? "bg-primary text-primary-foreground rounded-br-md"
+              : "bg-secondary text-foreground rounded-bl-md"
+          }`}
+        >
+          <div className="prose prose-sm max-w-none dark:prose-invert [&_p]:m-0 [&_p]:leading-relaxed">
+            <ReactMarkdown>{message.content}</ReactMarkdown>
+          </div>
+        </div>
+
+        <div className={`mt-1 flex items-center gap-2 ${isUser ? "justify-end" : "justify-start"}`}>
+          <span className="text-[10px] text-muted-foreground">{formatTime(message.created_at)}</span>
+          {!isUser && (
+            <button
+              onClick={handleCopy}
+              className="rounded p-0.5 text-muted-foreground transition-colors hover:text-foreground"
+              title="Copy"
+            >
+              {copied ? <Check className="h-3 w-3 text-primary" /> : <Copy className="h-3 w-3" />}
+            </button>
+          )}
         </div>
       </div>
 
-      <button
-        onClick={handleCopy}
-        className="mt-1 shrink-0 rounded-lg p-1.5 text-muted-foreground opacity-0 transition-all hover:bg-accent hover:text-foreground group-hover:opacity-100"
-        title="Copy message"
-      >
-        {copied ? <Check className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}
-      </button>
+      {/* User avatar */}
+      {isUser && (
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground order-2">
+          <User className="h-4 w-4" />
+        </div>
+      )}
     </motion.div>
   );
 }
