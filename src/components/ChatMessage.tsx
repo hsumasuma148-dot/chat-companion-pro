@@ -74,6 +74,13 @@ export function ChatMessage({ message }: ChatMessageProps) {
                 {copied ? <Check className="h-3.5 w-3.5 text-primary" /> : <Copy className="h-3.5 w-3.5" />}
                 {copied ? "Copied" : "Copy"}
               </button>
+              <button
+                onClick={handleSpeak}
+                className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+              >
+                {isSpeaking ? <VolumeX className="h-3.5 w-3.5 text-primary" /> : <Volume2 className="h-3.5 w-3.5" />}
+                {isSpeaking ? "Stop" : "Speak"}
+              </button>
             </div>
           )}
         </div>
