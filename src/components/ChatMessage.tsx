@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Copy, Check, Bot, User } from "lucide-react";
+import { Copy, Check, Bot, User, Volume2, VolumeX } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import type { Message } from "@/hooks/useChat";
 
