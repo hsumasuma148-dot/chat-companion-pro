@@ -31,26 +31,30 @@ export function ChatSidebar({
   }, [onClose]);
 
   const content = (
-    <div className="flex h-full flex-col bg-card border-r border-border">
-      <div className="flex items-center justify-between p-4">
-        <h2 className="text-sm font-semibold text-foreground">Conversations</h2>
-        <div className="flex gap-1">
-          <button
-            onClick={onNew}
-            className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-            title="New chat"
-          >
-            <Plus className="h-4 w-4" />
-          </button>
-          <button
-            onClick={onClose}
-            className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground md:hidden"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
+    <div className="flex h-full flex-col bg-sidebar border-r border-sidebar-border">
+      {/* New Chat Button */}
+      <div className="p-3">
+        <button
+          onClick={onNew}
+          className="flex w-full items-center gap-2 rounded-xl border border-sidebar-border px-3 py-2.5 text-sm font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent"
+        >
+          <Plus className="h-4 w-4" />
+          New Chat
+        </button>
       </div>
 
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-2">
+        <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">History</span>
+        <button
+          onClick={onClose}
+          className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground md:hidden"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+
+      {/* Conversations */}
       <div className="flex-1 overflow-y-auto scrollbar-thin px-2 pb-4">
         <AnimatePresence>
           {conversations.map(conv => (
@@ -63,22 +67,22 @@ export function ChatSidebar({
                 onSelect(conv.id);
                 if (window.innerWidth < 768) onClose();
               }}
-              className={`group mb-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-all ${
+              className={`group mb-0.5 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition-all ${
                 currentConversation === conv.id
-                  ? "bg-primary/10 text-foreground"
-                  : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                  ? "bg-sidebar-accent text-foreground"
+                  : "text-sidebar-foreground hover:bg-sidebar-accent/50"
               }`}
             >
-              <MessageSquare className="h-4 w-4 shrink-0" />
+              <MessageSquare className="h-4 w-4 shrink-0 opacity-60" />
               <span className="flex-1 truncate">{conv.title}</span>
               <button
                 onClick={e => {
                   e.stopPropagation();
                   onDelete(conv.id);
                 }}
-                className="shrink-0 rounded p-1 opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+                className="shrink-0 rounded p-1 opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
               >
-                <Trash2 className="h-3 w-3" />
+                <Trash2 className="h-3.5 w-3.5" />
               </button>
             </motion.button>
           ))}
@@ -86,7 +90,7 @@ export function ChatSidebar({
 
         {conversations.length === 0 && (
           <p className="px-3 py-8 text-center text-xs text-muted-foreground">
-            No conversations yet. Start a new chat!
+            No conversations yet.
           </p>
         )}
       </div>
@@ -95,10 +99,8 @@ export function ChatSidebar({
 
   return (
     <>
-      {/* Desktop sidebar */}
-      <div className="hidden h-full w-72 shrink-0 md:block">{content}</div>
+      <div className="hidden h-full w-64 shrink-0 md:block">{content}</div>
 
-      {/* Mobile overlay */}
       <AnimatePresence>
         {isOpen && (
           <>
@@ -114,7 +116,7 @@ export function ChatSidebar({
               animate={{ x: 0 }}
               exit={{ x: -300 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="fixed inset-y-0 left-0 z-50 w-72 md:hidden"
+              className="fixed inset-y-0 left-0 z-50 w-64 md:hidden"
             >
               {content}
             </motion.div>

@@ -65,7 +65,7 @@ export function useChat(userId: string | undefined) {
     await loadConversations();
   }, [currentConversation, loadConversations]);
 
-  const sendMessage = useCallback(async (content: string) => {
+  const sendMessage = useCallback(async (content: string, model?: string, translate?: string) => {
     if (!userId) return;
 
     let convId = currentConversation;
@@ -102,7 +102,7 @@ export function useChat(userId: string | undefined) {
     try {
       const { data: session } = await supabase.auth.getSession();
       const allMessages = [...messages, { role: "user" as const, content }];
-      
+
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`,
         {
@@ -113,7 +113,8 @@ export function useChat(userId: string | undefined) {
           },
           body: JSON.stringify({
             messages: allMessages.map(m => ({ role: m.role, content: m.content })),
-            conversationId: convId,
+            model,
+            translate,
           }),
         }
       );
@@ -123,25 +124,97 @@ export function useChat(userId: string | undefined) {
         throw new Error(err.error || "Failed to get AI response");
       }
 
-      const data = await response.json();
+      // Stream the response
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error("No response body");
 
-      // Save assistant message
-      const { data: assistantMsg } = await supabase
-        .from("messages")
-        .insert({
-          conversation_id: convId,
-          user_id: userId,
-          role: "assistant",
-          content: data.content,
-        })
-        .select()
-        .single();
+      const decoder = new TextDecoder();
+      let assistantContent = "";
+      let textBuffer = "";
+      const tempId = crypto.randomUUID();
 
-      if (assistantMsg) {
-        setMessages(prev => [...prev, assistantMsg as Message]);
+      // Add empty assistant message
+      setMessages(prev => [...prev, {
+        id: tempId,
+        role: "assistant" as const,
+        content: "",
+        created_at: new Date().toISOString(),
+      }]);
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        textBuffer += decoder.decode(value, { stream: true });
+
+        let newlineIndex: number;
+        while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
+          let line = textBuffer.slice(0, newlineIndex);
+          textBuffer = textBuffer.slice(newlineIndex + 1);
+
+          if (line.endsWith("\r")) line = line.slice(0, -1);
+          if (line.startsWith(":") || line.trim() === "") continue;
+          if (!line.startsWith("data: ")) continue;
+
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === "[DONE]") break;
+
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const delta = parsed.choices?.[0]?.delta?.content;
+            if (delta) {
+              assistantContent += delta;
+              setMessages(prev =>
+                prev.map(m => m.id === tempId ? { ...m, content: assistantContent } : m)
+              );
+            }
+          } catch {
+            textBuffer = line + "\n" + textBuffer;
+            break;
+          }
+        }
       }
 
-      // Update conversation timestamp
+      // Flush remaining buffer
+      if (textBuffer.trim()) {
+        for (let raw of textBuffer.split("\n")) {
+          if (!raw) continue;
+          if (raw.endsWith("\r")) raw = raw.slice(0, -1);
+          if (!raw.startsWith("data: ")) continue;
+          const jsonStr = raw.slice(6).trim();
+          if (jsonStr === "[DONE]") continue;
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const delta = parsed.choices?.[0]?.delta?.content;
+            if (delta) assistantContent += delta;
+          } catch { /* ignore */ }
+        }
+        if (assistantContent) {
+          setMessages(prev =>
+            prev.map(m => m.id === tempId ? { ...m, content: assistantContent } : m)
+          );
+        }
+      }
+
+      // Save assistant message to DB
+      if (assistantContent) {
+        const { data: savedMsg } = await supabase
+          .from("messages")
+          .insert({
+            conversation_id: convId,
+            user_id: userId,
+            role: "assistant",
+            content: assistantContent,
+          })
+          .select()
+          .single();
+
+        if (savedMsg) {
+          setMessages(prev =>
+            prev.map(m => m.id === tempId ? (savedMsg as Message) : m)
+          );
+        }
+      }
+
       await supabase
         .from("conversations")
         .update({ updated_at: new Date().toISOString() })
