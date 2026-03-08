@@ -15,6 +15,7 @@ function formatTime(dateStr: string) {
 
 export function ChatMessage({ message }: ChatMessageProps) {
   const [copied, setCopied] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const isUser = message.role === "user";
 
   const handleCopy = () => {
