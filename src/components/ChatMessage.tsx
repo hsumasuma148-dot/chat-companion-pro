@@ -1,11 +1,13 @@
 import { useState, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Copy, Check, Bot, User, Volume2, VolumeX } from "lucide-react";
+import { Copy, Check, Bot, User, Volume2, VolumeX, RefreshCw, FileText } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import type { Message } from "@/hooks/useChat";
+import type { Attachment } from "@/components/ChatInput";
 
 interface ChatMessageProps {
   message: Message;
+  onRegenerate?: () => void;
 }
 
 function formatTime(dateStr: string) {
@@ -13,7 +15,7 @@ function formatTime(dateStr: string) {
   return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
-export function ChatMessage({ message }: ChatMessageProps) {
+export function ChatMessage({ message, onRegenerate }: ChatMessageProps) {
   const [copied, setCopied] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const isUser = message.role === "user";
@@ -38,6 +40,8 @@ export function ChatMessage({ message }: ChatMessageProps) {
     setIsSpeaking(true);
   }, [isSpeaking, message.content]);
 
+  const attachments: Attachment[] = (message as any).attachments || [];
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -60,9 +64,27 @@ export function ChatMessage({ message }: ChatMessageProps) {
             <span className="text-[11px] text-muted-foreground">{formatTime(message.created_at)}</span>
           </div>
 
-          <div className="prose prose-sm max-w-none text-foreground dark:prose-invert [&_p]:my-1 [&_p]:leading-relaxed [&_pre]:rounded-lg [&_pre]:bg-secondary [&_code]:rounded [&_code]:bg-secondary [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:text-[13px]">
-            <ReactMarkdown>{message.content}</ReactMarkdown>
-          </div>
+          {/* Attachments */}
+          {attachments.length > 0 && (
+            <div className="mb-2 flex flex-wrap gap-2">
+              {attachments.map(att => (
+                att.type === "image" && att.preview ? (
+                  <img key={att.id} src={att.preview} alt={att.name} className="max-h-48 rounded-xl border border-border object-cover" />
+                ) : (
+                  <div key={att.id} className="flex items-center gap-2 rounded-lg border border-border bg-secondary px-3 py-2">
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm text-foreground">{att.name}</span>
+                  </div>
+                )
+              ))}
+            </div>
+          )}
+
+          {message.content && (
+            <div className="prose prose-sm max-w-none text-foreground dark:prose-invert [&_p]:my-1 [&_p]:leading-relaxed [&_pre]:rounded-lg [&_pre]:bg-secondary [&_code]:rounded [&_code]:bg-secondary [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:text-[13px]">
+              <ReactMarkdown>{message.content}</ReactMarkdown>
+            </div>
+          )}
 
           {/* Actions */}
           {!isUser && message.content && (
@@ -81,6 +103,15 @@ export function ChatMessage({ message }: ChatMessageProps) {
                 {isSpeaking ? <VolumeX className="h-3.5 w-3.5 text-primary" /> : <Volume2 className="h-3.5 w-3.5" />}
                 {isSpeaking ? "Stop" : "Speak"}
               </button>
+              {onRegenerate && (
+                <button
+                  onClick={onRegenerate}
+                  className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" />
+                  Regenerate
+                </button>
+              )}
             </div>
           )}
         </div>
