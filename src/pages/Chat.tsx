@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Menu, Sun, Moon, LogOut, Bot, Download, ChevronDown, Globe } from "lucide-react";
+import { Menu, Sun, Moon, LogOut, Bot, Download, ChevronDown, Globe, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useChat } from "@/hooks/useChat";
 import { useTheme } from "@/hooks/useTheme";
 import { ChatSidebar } from "@/components/ChatSidebar";
 import { ChatMessage } from "@/components/ChatMessage";
-import { ChatInput } from "@/components/ChatInput";
+import { ChatInput, type Attachment } from "@/components/ChatInput";
 import { TypingIndicator } from "@/components/TypingIndicator";
 import { toast } from "sonner";
 
@@ -42,6 +42,7 @@ const Chat = () => {
     sendMessage,
     clearChat,
     deleteConversation,
+    regenerateLastMessage,
   } = useChat(user?.id);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -59,8 +60,17 @@ const Chat = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading]);
 
-  const handleSend = (content: string) => {
-    sendMessage(content, selectedModel, translateLang || undefined);
+  const handleSend = (content: string, attachments?: Attachment[]) => {
+    sendMessage(content, selectedModel, translateLang || undefined, attachments);
+  };
+
+  const handleRegenerate = () => {
+    regenerateLastMessage(selectedModel, translateLang || undefined);
+  };
+
+  const handleClearChat = () => {
+    clearChat();
+    toast.success("Chat cleared");
   };
 
   const handleDownloadPDF = () => {
@@ -83,6 +93,9 @@ const Chat = () => {
   };
 
   const currentModelLabel = AI_MODELS.find(m => m.id === selectedModel)?.label || "Select Model";
+
+  // Find last assistant message index for regenerate
+  const lastAssistantIdx = messages.reduceRight((acc, m, i) => acc === -1 && m.role === "assistant" ? i : acc, -1);
 
   return (
     <div className="flex h-screen bg-background">
@@ -164,6 +177,13 @@ const Chat = () => {
             </div>
 
             <button
+              onClick={handleClearChat}
+              className="rounded-lg p-2 text-muted-foreground hover:bg-accent hover:text-foreground"
+              title="Clear chat"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+            <button
               onClick={handleDownloadPDF}
               className="rounded-lg p-2 text-muted-foreground hover:bg-accent hover:text-foreground"
               title="Download chat"
@@ -221,8 +241,12 @@ const Chat = () => {
             </motion.div>
           ) : (
             <div>
-              {messages.map(msg => (
-                <ChatMessage key={msg.id} message={msg} />
+              {messages.map((msg, idx) => (
+                <ChatMessage
+                  key={msg.id}
+                  message={msg}
+                  onRegenerate={idx === lastAssistantIdx && !isLoading ? handleRegenerate : undefined}
+                />
               ))}
               {isLoading && messages[messages.length - 1]?.role !== "assistant" && <TypingIndicator />}
               <div ref={messagesEndRef} />
