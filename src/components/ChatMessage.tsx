@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Copy, Check, Bot, User } from "lucide-react";
+import { Copy, Check, Bot, User, Volume2, VolumeX } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import type { Message } from "@/hooks/useChat";
 
@@ -15,6 +15,7 @@ function formatTime(dateStr: string) {
 
 export function ChatMessage({ message }: ChatMessageProps) {
   const [copied, setCopied] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const isUser = message.role === "user";
 
   const handleCopy = () => {
@@ -22,6 +23,20 @@ export function ChatMessage({ message }: ChatMessageProps) {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  const handleSpeak = useCallback(() => {
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+      return;
+    }
+    const utterance = new SpeechSynthesisUtterance(message.content);
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+    setIsSpeaking(true);
+  }, [isSpeaking, message.content]);
 
   return (
     <motion.div
@@ -58,6 +73,13 @@ export function ChatMessage({ message }: ChatMessageProps) {
               >
                 {copied ? <Check className="h-3.5 w-3.5 text-primary" /> : <Copy className="h-3.5 w-3.5" />}
                 {copied ? "Copied" : "Copy"}
+              </button>
+              <button
+                onClick={handleSpeak}
+                className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+              >
+                {isSpeaking ? <VolumeX className="h-3.5 w-3.5 text-primary" /> : <Volume2 className="h-3.5 w-3.5" />}
+                {isSpeaking ? "Stop" : "Speak"}
               </button>
             </div>
           )}
